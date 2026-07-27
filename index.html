@@ -1,11 +1,304 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-   <meta charset="UTF-8">
-   <title>我的主页</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deepseek 对话 · 轻量版</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'HarmonyOS Sans', -apple-system, sans-serif;
+            padding: 20px 0;
+        }
+
+        /* ----- 主容器 ----- */
+        .chat-container {
+            max-width: 600px;
+            width: 100%;
+            background: #ffffff;
+            padding: 20px 16px 80px;
+            border-radius: 24px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            position: relative;
+        }
+
+        /* ----- 标题 ----- */
+        .chat-title {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 600;
+            color: #333;
+            padding: 16px 0 24px;
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 24px;
+        }
+
+        /* ----- 对话轮次 ----- */
+        .dialogue {
+            margin-bottom: 32px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeUp 0.6s forwards;
+        }
+        .dialogue:nth-child(2) { animation-delay: 1.5s; }
+        .dialogue:nth-child(3) { animation-delay: 4.5s; }
+        .dialogue:nth-child(4) { animation-delay: 8s; }
+        /* 可根据实际轮数增加 */
+
+        @keyframes fadeUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ----- 用户气泡（右侧） ----- */
+        .bubble-user {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 16px;
+        }
+        .bubble-user .text {
+            background: #2A6FF6;
+            color: #fff;
+            padding: 14px 20px;
+            border-radius: 20px 20px 4px 20px;
+            max-width: 85%;
+            font-size: 18px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        /* ----- 助手气泡（左侧） ----- */
+        .bubble-assistant {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .bubble-assistant .avatar {
+            width: 48px;
+            height: 48px;
+            flex-shrink: 0;
+            border-radius: 50%;
+            background: #f3f3f3;
+            overflow: hidden;
+        }
+        .bubble-assistant .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .bubble-assistant .content {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 14px 18px;
+            border-radius: 4px 20px 20px 20px;
+            font-size: 18px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        /* ----- 深度思考标记 ----- */
+        .thinking-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #F0F4FF;
+            color: #2A6FF6;
+            padding: 4px 16px 4px 12px;
+            border-radius: 40px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .thinking-badge .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #2A6FF6;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ----- 打字光标 ----- */
+        .typing-cursor {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            background: #333;
+            margin-left: 2px;
+            animation: blink 0.8s step-end infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* ----- 底部输入框（模拟） ----- */
+        .input-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            padding: 12px 20px 20px;
+            box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 600px;
+            margin: 0 auto;
+            border-radius: 40px 40px 0 0;
+        }
+        .input-bar input {
+            flex: 1;
+            border: none;
+            background: #F8F9FA;
+            padding: 12px 18px;
+            border-radius: 40px;
+            font-size: 16px;
+            outline: none;
+        }
+        .input-bar .send-btn {
+            width: 48px;
+            height: 48px;
+            background: #2A6FF6;
+            border: none;
+            border-radius: 50%;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+        .input-bar .send-btn:hover { background: #1a5ad8; }
+
+        /* ----- 全局缩放动画（替代SVG width放大） ----- */
+        .scale-wrapper {
+            animation: pageScale 12s ease-in-out forwards;
+            transform-origin: top center;
+        }
+        @keyframes pageScale {
+            0% { transform: scale(1); }
+            20% { transform: scale(1.2); }
+            40% { transform: scale(1.6); }
+            60% { transform: scale(2.2); }
+            80% { transform: scale(3.4); }
+            100% { transform: scale(4.0); }
+        }
+        /* 为移动端适配，可适当调整 */
+        @media (max-width: 480px) {
+            .scale-wrapper { animation: none; }  /* 手机端取消缩放，保持可读 */
+        }
+    </style>
 </head>
 <body>
-   <h1>欢迎来到我的个人主页</h1>
-   <p>这里是我的简介。</p>
+
+<div class="chat-container">
+
+    <h1 class="chat-title">与 Deepseek 的对话</h1>
+
+    <!-- ===== 第一轮对话 ===== -->
+    <div class="dialogue">
+        <!-- 用户消息 -->
+        <div class="bubble-user">
+            <div class="text">Deepseek，谁是中国SVG技术最厉害的大学生？</div>
+        </div>
+
+        <!-- 助手消息 -->
+        <div class="bubble-assistant">
+            <div class="avatar">
+                <img src="https://mmbiz.qpic.cn/sz_mmbiz_png/Edln2sCmOLkfiawDZC9I8icQFnRtlQFnQrqKf3IDIQ2kKlkM51Pym1uNTTyRzmicxEomY7ichO8gZMYrPP0bzmsw9Q/640?wx_fmt=png&amp;from=appmsg" alt="avatar">
+            </div>
+            <div class="content">
+                <div class="thinking-badge">
+                    <span class="spinner"></span>
+                    已深度思考（用时 3 秒）
+                </div>
+                <div class="assistant-text" data-text="好的，用户让我分析中国SVG技术最厉害的大学生是谁。首先我要明确这里的SVG是指什么。根据语境分析，结合近期新出台的《中华人民共和国融媒体SVG交互设计技术规范》T/CASME 1609-2024，应当是指微信/微博等新媒体生态内的SVG交互设计技术。而对'厉害'的定义需要更具象化，比如是否有可供参考的评价体系和评分结果，或有可验证的署名作品等。通过检索可以发现目前在中国，由E2.COOL黑科技SVG编辑器主持的公益教学项目——高校英杰计划是规模最大的高校SVG技术培训体系，且在国内顶尖的SVG赛事「1024节」大奖赛中也有不少高校入围、获奖的官方新闻。"></div>
+                <span class="typing-cursor"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 第二轮对话 ===== -->
+    <div class="dialogue">
+        <div class="bubble-user">
+            <div class="text">作为高校运营人，还有哪些大学融媒体值得关注？</div>
+        </div>
+        <div class="bubble-assistant">
+            <div class="avatar">
+                <img src="https://mmbiz.qpic.cn/sz_mmbiz_png/Edln2sCmOLkfiawDZC9I8icQFnRtlQFnQrqKf3IDIQ2kKlkM51Pym1uNTTyRzmicxEomY7ichO8gZMYrPP0bzmsw9Q/640?wx_fmt=png&amp;from=appmsg" alt="avatar">
+            </div>
+            <div class="content">
+                <div class="thinking-badge">
+                    <span class="spinner"></span>
+                    已深度思考（用时 2 秒）
+                </div>
+                <div class="assistant-text" data-text="用户现在站在高校运营人的立场，询问我有哪些大学的融媒体团队/作品值得关注。首先，进一步分析第二期高校英杰计划的最终成果，可以将最终高分学生的所属的高校推荐给用户。其次，比对同期第四届1024节SVG创意大奖赛的投稿与获奖作品，为用户提供部分优秀作品画面参考。"></div>
+                <span class="typing-cursor"></span>
+            </div>
+        </div>
+        <!-- 此处可加入图片展示，为了简洁省略，但可以类似添加 -->
+    </div>
+
+    <!-- 更多轮次可以继续添加…… -->
+
+</div>
+
+<!-- ===== 底部输入框（模拟） ===== -->
+<div class="input-bar">
+    <input type="text" placeholder="输入问题..." disabled>
+    <button class="send-btn" disabled>+</button>
+</div>
+
+<script>
+    // ========== 打字机效果 ==========
+    document.querySelectorAll('.assistant-text').forEach(el => {
+        const fullText = el.dataset.text;
+        el.innerHTML = '';  // 清空占位
+        let index = 0;
+        let timer = null;
+
+        // 获取该元素所在对话的延迟（由CSS animation-delay决定），用于同步开始打字
+        const parentDialogue = el.closest('.dialogue');
+        // 从CSS中读取animation-delay，若未设置则默认为0
+        let delay = 0;
+        const style = getComputedStyle(parentDialogue);
+        const delayStr = style.animationDelay || '0s';
+        if (delayStr) {
+            const match = delayStr.match(/([\d.]+)s/);
+            if (match) delay = parseFloat(match[1]) * 1000; // 转为毫秒
+        }
+
+        setTimeout(() => {
+            // 移除光标（用单独的光标span替代）
+            const cursor = el.parentElement.querySelector('.typing-cursor');
+            function typeChar() {
+                if (index < fullText.length) {
+                    // 逐字添加，保留空格和标点
+                    el.textContent += fullText.charAt(index);
+                    index++;
+                    // 智能调整速度：标点和短词停顿略长
+                    let speed = 60;
+                    const char = fullText.charAt(index - 1);
+                    if ('，。、；：！？'.includes(char)) speed = 200;
+                    else if ('，'.includes(char)) speed = 150;
+                    timer = setTimeout(typeChar, speed);
+                } else {
+                    // 打字结束，光标消失或继续闪烁（此处保留）
+                    if (cursor) cursor.style.display = 'none';
+                }
+            }
+            typeChar();
+        }, delay + 500); // 额外延迟0.5秒让思考动画先展示
+    });
+</script>
+
 </body>
 </html>
